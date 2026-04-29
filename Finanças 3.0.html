@@ -1,0 +1,297 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finanças 💰</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #020617;
+    color: white;
+    margin: 0;
+    padding: 8px;
+}
+.container { max-width: 420px; margin: auto; }
+
+h2 { text-align:center; font-size:22px; margin:10px 0; }
+h3 { text-align:center; font-size:16px; margin:8px 0; }
+
+.card {
+    padding:12px;
+    margin:6px 0;
+    border-radius:10px;
+    border:2px solid;
+}
+.recebido { border-color:#00ff9f; }
+.gasto { border-color:#ff3b3b; }
+.vendas { border-color:#ffd700; }
+
+input, select {
+    width:100%;
+    padding:14px;
+    margin-top:8px;
+    border-radius:10px;
+    border:1px solid #0ea5e9;
+    background:#020617;
+    color:white;
+}
+
+.linha-botoes {
+    display:flex;
+    gap:6px;
+    margin-top:8px;
+}
+.linha-botoes button {
+    flex:1;
+    padding:16px;
+    border-radius:10px;
+    border:none;
+    font-weight:bold;
+}
+
+.btn-recebido { background:#00ff9f; color:black; }
+.btn-gasto { background:#ff3b3b; }
+.btn-vendas { background:#ffd700; color:black; }
+
+button {
+    width:100%;
+    padding:16px;
+    margin-top:8px;
+    border-radius:10px;
+    border:none;
+    font-weight:bold;
+}
+
+.salvar { background: linear-gradient(135deg,#00eaff,#3b82f6); }
+.importar { background: linear-gradient(135deg,#a855f7,#6366f1); }
+.exportar { background: linear-gradient(135deg,#22c55e,#16a34a); }
+
+.reset { background:#ff3b3b; }
+
+hr { border:1px solid #0ea5e9; margin:10px 0; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>💰 Finanças</h2>
+
+<h3>📊 Total do Ano</h3>
+<div class="card recebido">Recebido: R$ <span id="totalRecebido">0</span></div>
+<div class="card gasto">Gasto: R$ <span id="totalGasto">0</span></div>
+<div class="card vendas">Vendas: R$ <span id="totalVendas">0</span></div>
+
+<hr>
+
+<select id="ano" onchange="atualizarTela()">
+<option>2024</option>
+<option selected>2025</option>
+<option>2026</option>
+</select>
+
+<select id="mes" onchange="atualizarTela()">
+<option>Janeiro</option><option>Fevereiro</option><option>Março</option>
+<option>Abril</option><option>Maio</option><option>Junho</option>
+<option>Julho</option><option>Agosto</option><option>Setembro</option>
+<option>Outubro</option><option>Novembro</option><option>Dezembro</option>
+</select>
+
+<!-- 📅 CALENDÁRIO -->
+<input type="date" id="calendario" onchange="selecionarData()">
+
+<h3 id="tituloPeriodo"></h3>
+
+<div class="card recebido">Recebido: R$ <span id="recebido">0</span></div>
+<div class="card gasto">Gasto: R$ <span id="gasto">0</span></div>
+<div class="card vendas">Vendas: R$ <span id="vendas">0</span></div>
+
+<!-- 📅 HISTÓRICO DO DIA -->
+<h3>📅 Histórico do dia</h3>
+<div class="card recebido">Recebido: R$ <span id="diaRecebido">0</span></div>
+<div class="card gasto">Gasto: R$ <span id="diaGasto">0</span></div>
+<div class="card vendas">Vendas: R$ <span id="diaVendas">0</span></div>
+
+<input type="number" id="valor" placeholder="Digite o valor">
+
+<div class="linha-botoes">
+<button class="btn-recebido" onclick="addValor('recebido')">+ RECEBIDO</button>
+<button class="btn-gasto" onclick="addValor('gasto')">- GASTO</button>
+<button class="btn-vendas" onclick="addValor('vendas')">🛒 VENDAS</button>
+</div>
+
+<hr>
+
+<button class="salvar" onclick="salvarArquivo()">💾 SALVAR BACKUP</button>
+<button class="importar" onclick="document.getElementById('fileInput').click()">📂 IMPORTAR</button>
+<button class="exportar" onclick="compartilharArquivo()">📤 ENVIAR</button>
+
+<input type="file" id="fileInput" style="display:none" onchange="importarBackup(event)">
+
+<hr>
+
+<button onclick="resetarMes()">🔄 RESETAR MÊS</button>
+<button class="reset" onclick="resetarTudo()">🧹 RESETAR TUDO</button>
+
+</div>
+
+<script>
+
+let dados = JSON.parse(localStorage.getItem("financeiro")) || {};
+let dadosDia = JSON.parse(localStorage.getItem("financeiroDia")) || {};
+
+function salvarDados(){
+    localStorage.setItem("financeiro", JSON.stringify(dados));
+    localStorage.setItem("financeiroDia", JSON.stringify(dadosDia));
+}
+
+function getMes(){
+    return document.getElementById("ano").value + "-" + document.getElementById("mes").value;
+}
+
+function getDia(){
+    return document.getElementById("calendario").value;
+}
+
+function atualizarTitulo(){
+    document.getElementById("tituloPeriodo").innerText =
+    document.getElementById("mes").value + " / " +
+    document.getElementById("ano").value;
+}
+
+function selecionarData(){
+    const data = document.getElementById("calendario").value;
+    if (!data) return;
+
+    const partes = data.split("-");
+    const ano = partes[0];
+    const mesNumero = parseInt(partes[1]);
+
+    const meses = [
+        "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+        "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+    ];
+
+    document.getElementById("ano").value = ano;
+    document.getElementById("mes").value = meses[mesNumero - 1];
+
+    atualizarTela();
+}
+
+function addValor(tipo){
+    let valor = parseFloat(document.getElementById("valor").value);
+    let mes = getMes();
+    let dia = getDia();
+
+    if (isNaN(valor)) return alert("Digite um valor válido");
+
+    if (!dados[mes]) dados[mes] = { recebido: 0, gasto: 0, vendas: 0 };
+    dados[mes][tipo] += valor;
+
+    if (dia){
+        if (!dadosDia[dia]) dadosDia[dia] = { recebido: 0, gasto: 0, vendas: 0 };
+        dadosDia[dia][tipo] += valor;
+    }
+
+    salvarDados();
+    atualizarTela();
+    document.getElementById("valor").value = "";
+}
+
+function atualizarTela(){
+    let mes = getMes();
+    let dia = getDia();
+
+    document.getElementById("recebido").innerText = (dados[mes]?.recebido || 0).toFixed(2);
+    document.getElementById("gasto").innerText = (dados[mes]?.gasto || 0).toFixed(2);
+    document.getElementById("vendas").innerText = (dados[mes]?.vendas || 0).toFixed(2);
+
+    document.getElementById("diaRecebido").innerText = (dadosDia[dia]?.recebido || 0).toFixed(2);
+    document.getElementById("diaGasto").innerText = (dadosDia[dia]?.gasto || 0).toFixed(2);
+    document.getElementById("diaVendas").innerText = (dadosDia[dia]?.vendas || 0).toFixed(2);
+
+    atualizarTotaisGerais();
+    atualizarTitulo();
+}
+
+function atualizarTotaisGerais(){
+    let ano = document.getElementById("ano").value;
+    let r=0,g=0,v=0;
+
+    for (let chave in dados){
+        if (chave.startsWith(ano + "-")){
+            r += dados[chave].recebido || 0;
+            g += dados[chave].gasto || 0;
+            v += dados[chave].vendas || 0;
+        }
+    }
+
+    document.getElementById("totalRecebido").innerText = r.toFixed(2);
+    document.getElementById("totalGasto").innerText = g.toFixed(2);
+    document.getElementById("totalVendas").innerText = v.toFixed(2);
+}
+
+/* BACKUP */
+function salvarArquivo(){
+    const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "backup_financas.txt";
+    a.click();
+}
+
+function importarBackup(e){
+    let reader = new FileReader();
+    reader.onload = function(ev){
+        try{
+            dados = JSON.parse(ev.target.result);
+            salvarDados();
+            atualizarTela();
+            alert("Backup restaurado!");
+        }catch{
+            alert("Arquivo inválido!");
+        }
+    };
+    reader.readAsText(e.target.files[0]);
+}
+
+function compartilharArquivo(){
+    let blob = new Blob([JSON.stringify(dados)], {type:"text/plain"});
+    let file = new File([blob], "backup_financas.txt");
+
+    if (navigator.share){
+        navigator.share({title:"Backup", files:[file]});
+    } else {
+        alert("Não suportado");
+    }
+}
+
+function resetarMes(){
+    let mes = getMes();
+    if(confirm("Resetar mês?")){
+        dados[mes] = {recebido:0,gasto:0,vendas:0};
+        salvarDados();
+        atualizarTela();
+    }
+}
+
+function resetarTudo(){
+    if(confirm("Apagar tudo?")){
+        dados = {};
+        dadosDia = {};
+        salvarDados();
+        atualizarTela();
+    }
+}
+
+window.onload = atualizarTela;
+
+</script>
+
+</body>
+</html>
